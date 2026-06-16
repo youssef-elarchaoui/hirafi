@@ -1,0 +1,510 @@
+// src/pages/freelancer/FreelancerOrders.jsx
+import React, { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
+import { orderApi } from '../../api/orderApi';
+import { useAuth } from '../../hooks/useAuth';
+import toast from 'react-hot-toast';
+import { 
+  FiPackage, FiClock, FiCheckCircle, FiXCircle, 
+  FiEye, FiSearch, FiCalendar, FiDollarSign,
+  FiUser, FiMessageSquare, FiRefreshCw,
+  FiChevronLeft, FiChevronRight, FiTruck, FiSend
+} from 'react-icons/fi';
+
+const FreelancerOrders = () => {
+    const { user } = useAuth();
+    const [orders, setOrders] = useState([]);
+    const [loading, setLoading] = useState(true);
+    const [searchTerm, setSearchTerm] = useState('');
+    const [statusFilter, setStatusFilter] = useState('all');
+    const [currentPage, setCurrentPage] = useState(1);
+    const [totalPages, setTotalPages] = useState(1);
+    const [selectedOrder, setSelectedOrder] = useState(null);
+    const [updatingStatus, setUpdatingStatus] = useState(false);
+    const [deliveryMessage, setDeliveryMessage] = useState('');
+    const [showDeliveryModal, setShowDeliveryModal] = useState(null);
+
+    const itemsPerPage = 10;
+
+    useEffect(() => {
+        fetchOrders();
+    }, [currentPage, statusFilter]);
+
+    const fetchOrders = async () => {
+        setLoading(true);
+        try {
+            // Utilisation de getReceivedOrders pour les commandes reçues (freelancer)
+            const response = await orderApi.getReceivedOrders();
+            console.log('Commandes reçues:', response.data);
+            
+            let ordersList = response.data.orders || response.data || [];
+            
+            // Filtrer par statut
+            if (statusFilter !== 'all') {
+                ordersList = ordersList.filter(order => order.status === statusFilter);
+            }
+            
+            // Filtrer par recherche
+            if (searchTerm) {
+                ordersList = ordersList.filter(order => 
+                    order.serviceId?.title?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                    order.clientId?.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                    order._id.toLowerCase().includes(searchTerm.toLowerCase())
+                );
+            }
+            
+            // Pagination
+            const start = (currentPage - 1) * itemsPerPage;
+            const end = start + itemsPerPage;
+            const paginatedOrders = ordersList.slice(start, end);
+            
+            setOrders(paginatedOrders);
+            setTotalPages(Math.ceil(ordersList.length / itemsPerPage));
+        } catch (error) {
+            console.error('Erreur:', error);
+            toast.error('Impossible de charger les commandes');
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const updateOrderStatus = async (orderId, status) => {
+        const statusText = {
+            'in-progress': 'en cours',
+            'completed': 'terminée',
+            'cancelled': 'annulée'
+        }[status] || status;
+        
+        const confirmUpdate = window.confirm(`Passer cette commande en statut "${statusText}" ?`);
+        if (!confirmUpdate) return;
+        
+        setUpdatingStatus(true);
+        const updateToast = toast.loading('Mise à jour en cours...');
+        
+        try {
+            const response = await orderApi.updateStatus(orderId, status);
+            if (response.data.success) {
+                toast.success(`✓ Commande ${statusText} avec succès !`, {
+                    id: updateToast,
+                    duration: 3000,
+                    icon: '✅',
+                });
+                fetchOrders();
+                if (selectedOrder?._id === orderId) {
+                    setSelectedOrder(null);
+                }
+            }
+        } catch (error) {
+            toast.error(error.response?.data?.message || 'Erreur lors de la mise à jour', {
+                id: updateToast,
+                duration: 4000,
+            });
+        } finally {
+            setUpdatingStatus(false);
+        }
+    };
+
+    const handleDeliverOrder = async (orderId) => {
+        if (!deliveryMessage.trim()) {
+            toast.error('Veuillez ajouter un message de livraison');
+            return;
+        }
+        
+        setUpdatingStatus(true);
+        const deliverToast = toast.loading('Livraison en cours...');
+        
+        try {
+            const response = await orderApi.deliverOrder(orderId, { message: deliveryMessage });
+            if (response.data.success) {
+                toast.success('✓ Commande livrée avec succès !', {
+                    id: deliverToast,
+                    duration: 3000,
+                    icon: '🚚',
+                });
+                setShowDeliveryModal(null);
+                setDeliveryMessage('');
+                fetchOrders();
+            }
+        } catch (error) {
+            toast.error(error.response?.data?.message || 'Erreur lors de la livraison', {
+                id: deliverToast,
+                duration: 4000,
+            });
+        } finally {
+            setUpdatingStatus(false);
+        }
+    };
+
+    const getStatusBadge = (status) => {
+        const statusConfig = {
+            'pending': { label: 'En attente', color: 'bg-yellow-50 text-yellow-600', icon: FiClock },
+            'in-progress': { label: 'En cours', color: 'bg-blue-50 text-blue-600', icon: FiPackage },
+            'delivered': { label: 'Livré', color: 'bg-purple-50 text-purple-600', icon: FiTruck },
+            'completed': { label: 'Terminé', color: 'bg-green-50 text-green-600', icon: FiCheckCircle },
+            'cancelled': { label: 'Annulé', color: 'bg-red-50 text-red-600', icon: FiXCircle }
+        };
+        
+        const config = statusConfig[status] || statusConfig.pending;
+        const Icon = config.icon;
+        
+        return (
+            <span className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium ${config.color}`}>
+                <Icon size={12} />
+                {config.label}
+            </span>
+        );
+    };
+
+    const getAvailableActions = (status) => {
+        const actions = [];
+        if (status === 'pending') {
+            actions.push({ label: 'Commencer', action: () => updateOrderStatus, value: 'in-progress', color: 'bg-blue-500' });
+        }
+        if (status === 'in-progress') {
+            actions.push({ label: 'Livrer', action: 'deliver', color: 'bg-purple-500' });
+        }
+        if (status === 'delivered') {
+            actions.push({ label: 'Terminer', action: () => updateOrderStatus, value: 'completed', color: 'bg-green-500' });
+        }
+        return actions;
+    };
+
+    const formatDate = (date) => {
+        if (!date) return 'N/A';
+        return new Date(date).toLocaleDateString('fr-FR', {
+            day: 'numeric',
+            month: 'long',
+            year: 'numeric'
+        });
+    };
+
+    const formatPrice = (price) => {
+        return new Intl.NumberFormat('fr-MA').format(price || 0);
+    };
+
+    // Statistiques
+    const stats = {
+        total: orders.length,
+        pending: orders.filter(o => o.status === 'pending').length,
+        inProgress: orders.filter(o => o.status === 'in-progress').length,
+        completed: orders.filter(o => o.status === 'completed').length,
+        totalEarnings: orders.reduce((sum, o) => sum + (o.price || 0), 0)
+    };
+
+    // Re-fetch quand search change
+    useEffect(() => {
+        fetchOrders();
+    }, [searchTerm]);
+
+    if (loading) {
+        return (
+            <div className="flex justify-center items-center py-20">
+                <div className="relative w-12 h-12">
+                    <div className="absolute inset-0 border-3 border-[#E8EDE6] rounded-full"></div>
+                    <div className="absolute inset-0 border-3 border-[#3D5A3E] border-t-transparent rounded-full animate-spin"></div>
+                </div>
+            </div>
+        );
+    }
+
+    return (
+        <div className="space-y-6">
+            {/* Header */}
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                <div>
+                    <h1 className="text-2xl font-heading font-bold text-[#1A1208]">
+                        Commandes reçues
+                    </h1>
+                    <p className="text-[#6B5E4F] text-sm mt-1">
+                        Gérez les commandes de vos services
+                    </p>
+                </div>
+                <button 
+                    onClick={fetchOrders}
+                    className="flex items-center gap-2 px-4 py-2 bg-white border border-[#E8E2D9] rounded-xl text-[#6B5E4F] hover:text-[#3D5A3E] transition-all"
+                >
+                    <FiRefreshCw size={16} />
+                    Actualiser
+                </button>
+            </div>
+
+            {/* Statistiques */}
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+                <div className="bg-white rounded-xl border border-[#E8E2D9] p-4">
+                    <div className="flex items-center justify-between mb-2">
+                        <span className="text-[#6B5E4F] text-sm">Total commandes</span>
+                        <FiPackage className="text-[#3D5A3E]" size={18} />
+                    </div>
+                    <div className="text-2xl font-bold text-[#1A1208]">{stats.total}</div>
+                </div>
+                <div className="bg-white rounded-xl border border-[#E8E2D9] p-4">
+                    <div className="flex items-center justify-between mb-2">
+                        <span className="text-[#6B5E4F] text-sm">En attente</span>
+                        <FiClock className="text-yellow-500" size={18} />
+                    </div>
+                    <div className="text-2xl font-bold text-yellow-600">{stats.pending}</div>
+                </div>
+                <div className="bg-white rounded-xl border border-[#E8E2D9] p-4">
+                    <div className="flex items-center justify-between mb-2">
+                        <span className="text-[#6B5E4F] text-sm">En cours</span>
+                        <FiPackage className="text-blue-500" size={18} />
+                    </div>
+                    <div className="text-2xl font-bold text-blue-600">{stats.inProgress}</div>
+                </div>
+                <div className="bg-white rounded-xl border border-[#E8E2D9] p-4">
+                    <div className="flex items-center justify-between mb-2">
+                        <span className="text-[#6B5E4F] text-sm">Revenus</span>
+                        <FiDollarSign className="text-[#3D5A3E]" size={18} />
+                    </div>
+                    <div className="text-2xl font-bold text-[#3D5A3E]">{formatPrice(stats.totalEarnings)} DH</div>
+                </div>
+            </div>
+
+            {/* Search */}
+            <div className="relative max-w-md">
+                <FiSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-[#9B9082]" size={18} />
+                <input
+                    type="text"
+                    placeholder="Rechercher par service, client ou ID..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    className="w-full pl-10 pr-4 py-2 bg-white border border-[#E8E2D9] rounded-xl focus:outline-none focus:border-[#3D5A3E] transition-all"
+                />
+            </div>
+
+            {/* Filter tabs */}
+            <div className="flex flex-wrap gap-2 border-b border-[#E8E2D9] pb-2">
+                {['all', 'pending', 'in-progress', 'delivered', 'completed', 'cancelled'].map((status) => (
+                    <button
+                        key={status}
+                        onClick={() => setStatusFilter(status)}
+                        className={`px-4 py-1.5 rounded-full text-sm transition-all ${
+                            statusFilter === status
+                                ? 'bg-[#3D5A3E] text-white'
+                                : 'text-[#6B5E4F] hover:bg-[#E8EDE6]'
+                        }`}
+                    >
+                        {status === 'all' ? 'Tous' :
+                         status === 'pending' ? 'En attente' :
+                         status === 'in-progress' ? 'En cours' :
+                         status === 'delivered' ? 'Livré' :
+                         status === 'completed' ? 'Terminé' : 'Annulé'}
+                    </button>
+                ))}
+            </div>
+
+            {/* Orders List */}
+            {orders.length === 0 ? (
+                <div className="text-center py-12 bg-white rounded-2xl border border-[#E8E2D9]">
+                    <div className="text-6xl mb-4">📦</div>
+                    <h3 className="text-xl font-heading font-semibold text-[#1A1208] mb-2">
+                        Aucune commande
+                    </h3>
+                    <p className="text-[#6B5E4F] mb-6">
+                        {searchTerm ? "Aucune commande ne correspond à votre recherche" : "Vous n'avez pas encore reçu de commandes"}
+                    </p>
+                </div>
+            ) : (
+                <div className="space-y-4">
+                    {orders.map((order) => (
+                        <div key={order._id} className="bg-white rounded-2xl border border-[#E8E2D9] overflow-hidden hover:shadow-md transition-all">
+                            {/* En-tête */}
+                            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 p-4 bg-[#FAF8F5] border-b border-[#E8E2D9]">
+                                <div className="flex items-center gap-3 flex-wrap">
+                                    <span className="text-xs font-mono text-[#6B5E4F]">#{order._id?.slice(-8)}</span>
+                                    {getStatusBadge(order.status)}
+                                </div>
+                                <div className="flex items-center gap-4 text-xs text-[#6B5E4F]">
+                                    <span className="flex items-center gap-1">
+                                        <FiCalendar size={12} />
+                                        {formatDate(order.createdAt)}
+                                    </span>
+                                </div>
+                            </div>
+
+                            {/* Contenu */}
+                            <div className="p-4">
+                                <div className="flex flex-col md:flex-row gap-6">
+                                    {/* Info service */}
+                                    <div className="flex-1">
+                                        <div className="flex items-start gap-3">
+                                            <div className="w-12 h-12 rounded-lg bg-[#E8EDE6] flex items-center justify-center text-2xl flex-shrink-0">
+                                                {order.serviceId?.category === 'graphic-design' && '🎨'}
+                                                {order.serviceId?.category === 'web-development' && '💻'}
+                                                {order.serviceId?.category === 'marketing' && '📈'}
+                                                {!order.serviceId?.category && '✨'}
+                                            </div>
+                                            <div>
+                                                <Link 
+                                                    to={`/services/${order.serviceId?._id}`}
+                                                    className="font-heading font-semibold text-[#1A1208] hover:text-[#3D5A3E] transition-colors"
+                                                >
+                                                    {order.serviceId?.title || 'Service'}
+                                                </Link>
+                                                <div className="flex flex-wrap items-center gap-3 text-xs text-[#6B5E4F] mt-1">
+                                                    <span className="flex items-center gap-1">
+                                                        <FiUser size={12} />
+                                                        {order.clientId?.name || 'Client'}
+                                                    </span>
+                                                    <span className="flex items-center gap-1">
+                                                        <FiDollarSign size={12} />
+                                                        {formatPrice(order.price)} DH
+                                                    </span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    {/* Actions */}
+                                    <div className="flex flex-wrap items-center gap-2">
+                                        <button
+                                            onClick={() => setSelectedOrder(selectedOrder?._id === order._id ? null : order)}
+                                            className="px-3 py-1.5 text-sm border border-[#E8E2D9] rounded-lg text-[#6B5E4F] hover:border-[#3D5A3E] hover:text-[#3D5A3E] transition-all"
+                                        >
+                                            {selectedOrder?._id === order._id ? 'Masquer' : 'Détails'}
+                                        </button>
+                                        
+                                        {order.status === 'pending' && (
+                                            <button
+                                                onClick={() => updateOrderStatus(order._id, 'in-progress')}
+                                                disabled={updatingStatus}
+                                                className="px-3 py-1.5 text-sm bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-all"
+                                            >
+                                                Commencer
+                                            </button>
+                                        )}
+                                        
+                                        {order.status === 'in-progress' && (
+                                            <button
+                                                onClick={() => setShowDeliveryModal(order)}
+                                                disabled={updatingStatus}
+                                                className="px-3 py-1.5 text-sm bg-purple-500 text-white rounded-lg hover:bg-purple-600 transition-all flex items-center gap-1"
+                                            >
+                                                <FiSend size={14} />
+                                                Livrer
+                                            </button>
+                                        )}
+                                        
+                                        {order.status === 'delivered' && (
+                                            <button
+                                                onClick={() => updateOrderStatus(order._id, 'completed')}
+                                                disabled={updatingStatus}
+                                                className="px-3 py-1.5 text-sm bg-green-500 text-white rounded-lg hover:bg-green-600 transition-all"
+                                            >
+                                                Terminer
+                                            </button>
+                                        )}
+                                        
+                                        <Link
+                                            to={`/messages?order=${order._id}`}
+                                            className="px-3 py-1.5 text-sm bg-[#E8EDE6] text-[#3D5A3E] rounded-lg hover:bg-[#3D5A3E] hover:text-white transition-all flex items-center gap-1"
+                                        >
+                                            <FiMessageSquare size={14} />
+                                            Message
+                                        </Link>
+                                    </div>
+                                </div>
+
+                                {/* Détails expansibles */}
+                                {selectedOrder?._id === order._id && (
+                                    <div className="mt-4 pt-4 border-t border-[#E8E2D9] animate-fade-in">
+                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                            <div>
+                                                <h4 className="font-semibold text-[#1A1208] text-sm mb-2">Description du projet</h4>
+                                                <p className="text-[#6B5E4F] text-sm bg-[#FAF8F5] p-3 rounded-lg">
+                                                    {order.requirements || 'Aucune description fournie'}
+                                                </p>
+                                            </div>
+                                            <div>
+                                                <h4 className="font-semibold text-[#1A1208] text-sm mb-2">Informations client</h4>
+                                                <div className="space-y-1 text-sm text-[#6B5E4F] bg-[#FAF8F5] p-3 rounded-lg">
+                                                    <p><span className="font-medium">Nom:</span> {order.clientId?.name || 'N/A'}</p>
+                                                    <p><span className="font-medium">Email:</span> {order.clientId?.email || 'N/A'}</p>
+                                                    <p><span className="font-medium">Téléphone:</span> {order.clientId?.phone || 'Non renseigné'}</p>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+                    ))}
+                </div>
+            )}
+
+            {/* Pagination */}
+            {totalPages > 1 && (
+                <div className="flex justify-center gap-2 mt-6">
+                    <button
+                        onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                        disabled={currentPage === 1}
+                        className="p-2 border border-[#E8E2D9] rounded-lg disabled:opacity-50 hover:border-[#3D5A3E] transition-all"
+                    >
+                        <FiChevronLeft size={18} />
+                    </button>
+                    <span className="flex items-center px-4 text-sm text-[#6B5E4F]">
+                        Page {currentPage} sur {totalPages}
+                    </span>
+                    <button
+                        onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
+                        disabled={currentPage === totalPages}
+                        className="p-2 border border-[#E8E2D9] rounded-lg disabled:opacity-50 hover:border-[#3D5A3E] transition-all"
+                    >
+                        <FiChevronRight size={18} />
+                    </button>
+                </div>
+            )}
+
+            {/* Modal de livraison */}
+            {showDeliveryModal && (
+                <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+                    <div className="bg-white rounded-2xl p-6 max-w-md w-full">
+                        <h3 className="text-xl font-heading font-bold text-[#1A1208] mb-2">
+                            Livrer la commande
+                        </h3>
+                        <p className="text-[#6B5E4F] text-sm mb-4">
+                            Ajoutez un message de livraison pour le client
+                        </p>
+                        <textarea
+                            value={deliveryMessage}
+                            onChange={(e) => setDeliveryMessage(e.target.value)}
+                            rows="4"
+                            placeholder="Message de livraison..."
+                            className="w-full px-4 py-3 bg-[#FAF8F5] border border-[#E8E2D9] rounded-xl focus:outline-none focus:border-[#3D5A3E] transition-all mb-4"
+                        />
+                        <div className="flex gap-3">
+                            <button
+                                onClick={() => {
+                                    setShowDeliveryModal(null);
+                                    setDeliveryMessage('');
+                                }}
+                                className="flex-1 px-4 py-2 border border-[#E8E2D9] rounded-xl text-[#6B5E4F] hover:bg-[#E8EDE6] transition-all"
+                            >
+                                Annuler
+                            </button>
+                            <button
+                                onClick={() => handleDeliverOrder(showDeliveryModal._id)}
+                                disabled={updatingStatus}
+                                className="flex-1 px-4 py-2 bg-purple-500 text-white rounded-xl hover:bg-purple-600 transition-all"
+                            >
+                                {updatingStatus ? 'Livraison...' : 'Confirmer la livraison'}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            <style>{`
+                @keyframes fadeIn {
+                    from { opacity: 0; transform: translateY(-10px); }
+                    to { opacity: 1; transform: translateY(0); }
+                }
+                .animate-fade-in {
+                    animation: fadeIn 0.2s ease-out;
+                }
+            `}</style>
+        </div>
+    );
+};
+
+export default FreelancerOrders;
