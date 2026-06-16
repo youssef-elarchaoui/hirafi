@@ -17,9 +17,12 @@ export const orderApi = {
     // Mettre à jour statut
     updateStatus: (id, status) => axios.put(`/orders/${id}/status`, { status }),
     
-    // Livrer commande
+    // Livrer commande (freelancer)
     deliverOrder: (id, data) => axios.post(`/orders/${id}/deliver`, data),
     
-    // Annuler commande
-    cancelOrder: (id, reason) => axios.put(`/orders/${id}/cancel`, { cancellationReason: reason })
+    // Annuler commande (client)
+    cancelOrder: (id, reason) => axios.put(`/orders/${id}/cancel`, { cancellationReason: reason }),
+    
+    // Compléter commande (client)
+    completeOrder: (id) => axios.put(`/orders/${id}/complete`)
 };

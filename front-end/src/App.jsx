@@ -4,6 +4,7 @@ import { RouterProvider } from 'react-router-dom';
 import { router } from './routes';
 import { AuthProvider } from './context/AuthContext';
 import { Toaster } from 'react-hot-toast';
+import { SocketProvider } from './context/SocketContext';
 
 function App() {
   return (
@@ -34,7 +35,9 @@ function App() {
         }}
       />
     <AuthProvider>
+      <SocketProvider>
       <RouterProvider router={router} />
+      </SocketProvider>
     </AuthProvider>
   </>
   );

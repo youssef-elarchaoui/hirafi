@@ -1,21 +1,21 @@
-// src/pages/freelancer/FreelancerSettings.jsx
-import React, { useState } from 'react';
+// src/pages/client/ClientSettings.jsx
+import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../hooks/useAuth';
 import { userApi } from '../../api/userApi';
+import { Link } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import { 
   FiLock, FiBell, FiGlobe, FiMoon, FiSun, 
-  FiShield, FiSave, FiEye, FiEyeOff, FiCheck,
-  FiAlertCircle, FiLogOut, FiUser, FiMail,
-  FiSmartphone, FiDollarSign
-} from 'react-icons/fi';
+  FiShield, FiSave, FiEye, FiEyeOff, FiLogOut,
+  FiDollarSign, FiUser, FiMail,
+  FiSmartphone, FiMapPin, FiCheckCircle
+} from 'react-icons/fi'; // ✅ Supprimé FiLanguage
 
-const FreelancerSettings = () => {
+const ClientSettings = () => {
     const { user, logout } = useAuth();
-    
-    // États pour les paramètres
     const [activeTab, setActiveTab] = useState('security');
     const [loading, setLoading] = useState(false);
+    const [saved, setSaved] = useState(false);
     
     // Sécurité
     const [currentPassword, setCurrentPassword] = useState('');
@@ -27,23 +27,54 @@ const FreelancerSettings = () => {
     const [passwordStrength, setPasswordStrength] = useState({ score: 0, message: '', color: '' });
     
     // Notifications
-    const [notifications, setNotifications] = useState({
-        orderUpdates: true,
-        messages: true,
-        reviews: true,
-        promotions: false,
-        newsletter: true
+    const [notifications, setNotifications] = useState(() => {
+        const saved = localStorage.getItem('clientNotifications');
+        if (saved) {
+            try {
+                return JSON.parse(saved);
+            } catch (e) {
+                return {
+                    orderUpdates: true,
+                    messages: true,
+                    promotions: false,
+                    newsletter: true
+                };
+            }
+        }
+        return {
+            orderUpdates: true,
+            messages: true,
+            promotions: false,
+            newsletter: true
+        };
     });
     
     // Préférences
-    const [preferences, setPreferences] = useState({
-        language: 'fr',
-        currency: 'MAD',
-        theme: 'light',
-        timezone: 'Africa/Casablanca'
+    const [preferences, setPreferences] = useState(() => {
+        const saved = localStorage.getItem('clientPreferences');
+        if (saved) {
+            try {
+                return JSON.parse(saved);
+            } catch (e) {
+                return { language: 'fr', currency: 'MAD', theme: 'light' };
+            }
+        }
+        return { language: 'fr', currency: 'MAD', theme: 'light' };
     });
 
-    // Vérifier la force du mot de passe
+    // Sauvegarder les préférences
+    useEffect(() => {
+        localStorage.setItem('clientPreferences', JSON.stringify(preferences));
+        localStorage.setItem('clientNotifications', JSON.stringify(notifications));
+        
+        // Appliquer le thème
+        if (preferences.theme === 'dark') {
+            document.documentElement.classList.add('dark');
+        } else {
+            document.documentElement.classList.remove('dark');
+        }
+    }, [preferences, notifications]);
+
     const checkPasswordStrength = (password) => {
         let score = 0;
         let message = '';
@@ -65,7 +96,8 @@ const FreelancerSettings = () => {
     const handlePasswordChange = (e) => {
         const value = e.target.value;
         setNewPassword(value);
-        checkPasswordStrength(value);
+        if (value) checkPasswordStrength(value);
+        else setPasswordStrength({ score: 0, message: '', color: '' });
     };
 
     const handleChangePassword = async (e) => {
@@ -94,7 +126,6 @@ const FreelancerSettings = () => {
                 currentPassword,
                 newPassword
             });
-
             if (response.data.success) {
                 toast.success('✓ Mot de passe changé avec succès !', {
                     id: changeToast,
@@ -105,9 +136,11 @@ const FreelancerSettings = () => {
                 setNewPassword('');
                 setConfirmPassword('');
                 setPasswordStrength({ score: 0, message: '', color: '' });
+                setSaved(true);
+                setTimeout(() => setSaved(false), 3000);
             }
         } catch (error) {
-            toast.error(error.response?.data?.message || 'Erreur lors du changement de mot de passe', {
+            toast.error(error.response?.data?.message || 'Erreur lors du changement', {
                 id: changeToast,
                 duration: 4000,
                 icon: '❌',
@@ -158,6 +191,16 @@ const FreelancerSettings = () => {
                 </p>
             </div>
 
+            {/* Success message */}
+            {saved && (
+                <div className="bg-green-50 border-l-4 border-green-500 p-4 rounded-lg animate-fade-in">
+                    <div className="flex items-center gap-2">
+                        <FiCheckCircle className="text-green-500" size={20} />
+                        <p className="text-green-700">Paramètres enregistrés avec succès</p>
+                    </div>
+                </div>
+            )}
+
             <div className="bg-white rounded-2xl border border-[#E8E2D9] overflow-hidden">
                 {/* Tabs */}
                 <div className="flex border-b border-[#E8E2D9] overflow-x-auto">
@@ -177,7 +220,6 @@ const FreelancerSettings = () => {
                     ))}
                 </div>
 
-                {/* Contenu des onglets */}
                 <div className="p-6">
                     
                     {/* ========== ONGLET SÉCURITÉ ========== */}
@@ -189,137 +231,151 @@ const FreelancerSettings = () => {
                                     Sécurité du compte
                                 </h3>
                                 
-                                {/* Email (lecture seule) */}
-                                <div className="mb-4">
-                                    <label className="block text-[#6B5E4F] text-sm font-medium mb-2">
-                                        <FiMail className="inline mr-2" />
-                                        Adresse email
-                                    </label>
-                                    <input
-                                        type="email"
-                                        value={user?.email || ''}
-                                        disabled
-                                        className="w-full px-4 py-2 bg-[#FAF8F5] border border-[#E8E2D9] rounded-xl opacity-70 cursor-not-allowed"
-                                    />
-                                </div>
-
-                                {/* Mot de passe actuel */}
-                                <div className="mb-4">
-                                    <label className="block text-[#6B5E4F] text-sm font-medium mb-2">
-                                        Mot de passe actuel *
-                                    </label>
-                                    <div className="relative">
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                                    <div>
+                                        <label className="block text-[#6B5E4F] text-sm font-medium mb-2">
+                                            <FiUser className="inline mr-2" />
+                                            Nom
+                                        </label>
                                         <input
-                                            type={showCurrentPassword ? 'text' : 'password'}
-                                            value={currentPassword}
-                                            onChange={(e) => setCurrentPassword(e.target.value)}
-                                            className="w-full px-4 py-2 pr-12 bg-[#FAF8F5] border border-[#E8E2D9] rounded-xl focus:outline-none focus:border-[#3D5A3E] transition-all"
-                                            placeholder="••••••••"
-                                            required
+                                            type="text"
+                                            value={user?.name || ''}
+                                            disabled
+                                            className="w-full px-4 py-2 bg-[#FAF8F5] border border-[#E8E2D9] rounded-xl opacity-70 cursor-not-allowed"
                                         />
-                                        <button
-                                            type="button"
-                                            onClick={() => setShowCurrentPassword(!showCurrentPassword)}
-                                            className="absolute right-3 top-1/2 transform -translate-y-1/2 text-[#9B9082] hover:text-[#3D5A3E]"
-                                        >
-                                            {showCurrentPassword ? <FiEyeOff size={18} /> : <FiEye size={18} />}
-                                        </button>
+                                    </div>
+                                    <div>
+                                        <label className="block text-[#6B5E4F] text-sm font-medium mb-2">
+                                            <FiMail className="inline mr-2" />
+                                            Email
+                                        </label>
+                                        <input
+                                            type="email"
+                                            value={user?.email || ''}
+                                            disabled
+                                            className="w-full px-4 py-2 bg-[#FAF8F5] border border-[#E8E2D9] rounded-xl opacity-70 cursor-not-allowed"
+                                        />
                                     </div>
                                 </div>
 
-                                {/* Nouveau mot de passe */}
-                                <div className="mb-2">
-                                    <label className="block text-[#6B5E4F] text-sm font-medium mb-2">
-                                        Nouveau mot de passe *
-                                    </label>
-                                    <div className="relative">
-                                        <input
-                                            type={showNewPassword ? 'text' : 'password'}
-                                            value={newPassword}
-                                            onChange={handlePasswordChange}
-                                            className="w-full px-4 py-2 pr-12 bg-[#FAF8F5] border border-[#E8E2D9] rounded-xl focus:outline-none focus:border-[#3D5A3E] transition-all"
-                                            placeholder="••••••••"
-                                            required
-                                        />
-                                        <button
-                                            type="button"
-                                            onClick={() => setShowNewPassword(!showNewPassword)}
-                                            className="absolute right-3 top-1/2 transform -translate-y-1/2 text-[#9B9082] hover:text-[#3D5A3E]"
-                                        >
-                                            {showNewPassword ? <FiEyeOff size={18} /> : <FiEye size={18} />}
-                                        </button>
-                                    </div>
-                                    {passwordStrength.message && (
-                                        <div className="mt-1 flex items-center gap-2">
-                                            <div className="flex-1 h-1.5 bg-gray-200 rounded-full overflow-hidden">
-                                                <div 
-                                                    className={`h-full rounded-full transition-all`}
-                                                    style={{ 
-                                                        width: `${(passwordStrength.score / 5) * 100}%`,
-                                                        backgroundColor: passwordStrength.color === 'text-red-500' ? '#EF4444' : 
-                                                                       passwordStrength.color === 'text-yellow-500' ? '#F59E0B' : '#10B981'
-                                                    }}
-                                                />
-                                            </div>
-                                            <span className={`text-xs font-medium ${passwordStrength.color}`}>
-                                                {passwordStrength.message}
-                                            </span>
+                                <div className="border-t border-[#E8E2D9] pt-4 mt-4">
+                                    <p className="text-sm text-[#6B5E4F] mb-4">Changer le mot de passe</p>
+                                    
+                                    <div className="mb-4">
+                                        <label className="block text-[#6B5E4F] text-sm font-medium mb-2">
+                                            Mot de passe actuel *
+                                        </label>
+                                        <div className="relative">
+                                            <input
+                                                type={showCurrentPassword ? 'text' : 'password'}
+                                                value={currentPassword}
+                                                onChange={(e) => setCurrentPassword(e.target.value)}
+                                                className="w-full px-4 py-2 pr-12 bg-[#FAF8F5] border border-[#E8E2D9] rounded-xl focus:outline-none focus:border-[#3D5A3E] transition-all"
+                                                placeholder="••••••••"
+                                                required
+                                            />
+                                            <button
+                                                type="button"
+                                                onClick={() => setShowCurrentPassword(!showCurrentPassword)}
+                                                className="absolute right-3 top-1/2 transform -translate-y-1/2 text-[#9B9082] hover:text-[#3D5A3E]"
+                                            >
+                                                {showCurrentPassword ? <FiEyeOff size={18} /> : <FiEye size={18} />}
+                                            </button>
                                         </div>
-                                    )}
-                                </div>
-
-                                {/* Confirmer mot de passe */}
-                                <div className="mb-6">
-                                    <label className="block text-[#6B5E4F] text-sm font-medium mb-2">
-                                        Confirmer le mot de passe *
-                                    </label>
-                                    <div className="relative">
-                                        <input
-                                            type={showConfirmPassword ? 'text' : 'password'}
-                                            value={confirmPassword}
-                                            onChange={(e) => setConfirmPassword(e.target.value)}
-                                            className="w-full px-4 py-2 pr-12 bg-[#FAF8F5] border border-[#E8E2D9] rounded-xl focus:outline-none focus:border-[#3D5A3E] transition-all"
-                                            placeholder="••••••••"
-                                            required
-                                        />
-                                        <button
-                                            type="button"
-                                            onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                                            className="absolute right-3 top-1/2 transform -translate-y-1/2 text-[#9B9082] hover:text-[#3D5A3E]"
-                                        >
-                                            {showConfirmPassword ? <FiEyeOff size={18} /> : <FiEye size={18} />}
-                                        </button>
                                     </div>
-                                    {confirmPassword && newPassword && (
-                                        <p className={`text-xs mt-1 ${newPassword === confirmPassword ? 'text-green-500' : 'text-red-500'}`}>
-                                            {newPassword === confirmPassword ? '✓ Les mots de passe correspondent' : '✗ Les mots de passe ne correspondent pas'}
-                                        </p>
-                                    )}
-                                </div>
 
-                                <button
-                                    type="submit"
-                                    disabled={loading}
-                                    className="flex items-center gap-2 px-6 py-2 bg-[#3D5A3E] hover:bg-[#2D452E] text-white rounded-xl font-semibold transition-all disabled:opacity-50"
-                                >
-                                    {loading ? (
-                                        <>
-                                            <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                                            Changement...
-                                        </>
-                                    ) : (
-                                        <>
-                                            <FiSave size={16} />
-                                            Changer le mot de passe
-                                        </>
-                                    )}
-                                </button>
+                                    <div className="mb-2">
+                                        <label className="block text-[#6B5E4F] text-sm font-medium mb-2">
+                                            Nouveau mot de passe *
+                                        </label>
+                                        <div className="relative">
+                                            <input
+                                                type={showNewPassword ? 'text' : 'password'}
+                                                value={newPassword}
+                                                onChange={handlePasswordChange}
+                                                className="w-full px-4 py-2 pr-12 bg-[#FAF8F5] border border-[#E8E2D9] rounded-xl focus:outline-none focus:border-[#3D5A3E] transition-all"
+                                                placeholder="••••••••"
+                                                required
+                                            />
+                                            <button
+                                                type="button"
+                                                onClick={() => setShowNewPassword(!showNewPassword)}
+                                                className="absolute right-3 top-1/2 transform -translate-y-1/2 text-[#9B9082] hover:text-[#3D5A3E]"
+                                            >
+                                                {showNewPassword ? <FiEyeOff size={18} /> : <FiEye size={18} />}
+                                            </button>
+                                        </div>
+                                        {passwordStrength.message && (
+                                            <div className="mt-1 flex items-center gap-2">
+                                                <div className="flex-1 h-1.5 bg-gray-200 rounded-full overflow-hidden">
+                                                    <div 
+                                                        className={`h-full rounded-full transition-all`}
+                                                        style={{ 
+                                                            width: `${(passwordStrength.score / 5) * 100}%`,
+                                                            backgroundColor: passwordStrength.color === 'text-red-500' ? '#EF4444' : 
+                                                                           passwordStrength.color === 'text-yellow-500' ? '#F59E0B' : '#10B981'
+                                                        }}
+                                                    />
+                                                </div>
+                                                <span className={`text-xs font-medium ${passwordStrength.color}`}>
+                                                    {passwordStrength.message}
+                                                </span>
+                                            </div>
+                                        )}
+                                    </div>
+
+                                    <div className="mb-6">
+                                        <label className="block text-[#6B5E4F] text-sm font-medium mb-2">
+                                            Confirmer le mot de passe *
+                                        </label>
+                                        <div className="relative">
+                                            <input
+                                                type={showConfirmPassword ? 'text' : 'password'}
+                                                value={confirmPassword}
+                                                onChange={(e) => setConfirmPassword(e.target.value)}
+                                                className="w-full px-4 py-2 pr-12 bg-[#FAF8F5] border border-[#E8E2D9] rounded-xl focus:outline-none focus:border-[#3D5A3E] transition-all"
+                                                placeholder="••••••••"
+                                                required
+                                            />
+                                            <button
+                                                type="button"
+                                                onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                                                className="absolute right-3 top-1/2 transform -translate-y-1/2 text-[#9B9082] hover:text-[#3D5A3E]"
+                                            >
+                                                {showConfirmPassword ? <FiEyeOff size={18} /> : <FiEye size={18} />}
+                                            </button>
+                                        </div>
+                                        {confirmPassword && newPassword && (
+                                            <p className={`text-xs mt-1 ${newPassword === confirmPassword ? 'text-green-500' : 'text-red-500'}`}>
+                                                {newPassword === confirmPassword ? '✓ Les mots de passe correspondent' : '✗ Les mots de passe ne correspondent pas'}
+                                            </p>
+                                        )}
+                                    </div>
+
+                                    <button
+                                        type="submit"
+                                        disabled={loading}
+                                        className="flex items-center gap-2 px-6 py-2 bg-[#3D5A3E] hover:bg-[#2D452E] text-white rounded-xl font-semibold transition-all disabled:opacity-50"
+                                    >
+                                        {loading ? (
+                                            <>
+                                                <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                                                Changement...
+                                            </>
+                                        ) : (
+                                            <>
+                                                <FiSave size={16} />
+                                                Changer le mot de passe
+                                            </>
+                                        )}
+                                    </button>
+                                </div>
                             </div>
 
                             {/* Session */}
                             <div className="pt-6 border-t border-[#E8E2D9]">
                                 <h3 className="text-lg font-heading font-semibold text-[#1A1208] mb-4 flex items-center gap-2">
-                                    <FiAlertCircle className="text-[#C47D4E]" />
+                                    <FiLogOut className="text-red-500" />
                                     Session
                                 </h3>
                                 <button
@@ -345,11 +401,10 @@ const FreelancerSettings = () => {
                                 {[
                                     { key: 'orderUpdates', label: 'Mises à jour des commandes', desc: 'Recevoir les notifications sur le statut de vos commandes' },
                                     { key: 'messages', label: 'Messages', desc: 'Recevoir les notifications des nouveaux messages' },
-                                    { key: 'reviews', label: 'Avis et évaluations', desc: 'Recevoir les notifications des nouveaux avis' },
                                     { key: 'promotions', label: 'Promotions et offres', desc: 'Recevoir les offres promotionnelles' },
                                     { key: 'newsletter', label: 'Newsletter', desc: 'Recevoir la newsletter hebdomadaire' }
                                 ].map((item) => (
-                                    <div key={item.key} className="flex items-center justify-between p-4 bg-[#FAF8F5] rounded-xl">
+                                    <div key={item.key} className="flex items-center justify-between p-4 bg-[#FAF8F5] rounded-xl hover:bg-[#E8EDE6] transition-all">
                                         <div>
                                             <p className="font-medium text-[#1A1208]">{item.label}</p>
                                             <p className="text-sm text-[#6B5E4F]">{item.desc}</p>
@@ -360,7 +415,7 @@ const FreelancerSettings = () => {
                                                 notifications[item.key] ? 'bg-[#3D5A3E]' : 'bg-[#E8E2D9]'
                                             }`}
                                         >
-                                            <span className={`absolute top-0.5 w-5 h-5 bg-white rounded-full transition-all ${
+                                            <span className={`absolute top-0.5 w-5 h-5 bg-white rounded-full shadow-md transition-all ${
                                                 notifications[item.key] ? 'right-0.5' : 'left-0.5'
                                             }`} />
                                         </button>
@@ -382,8 +437,7 @@ const FreelancerSettings = () => {
                                 {/* Langue */}
                                 <div>
                                     <label className="block text-[#6B5E4F] text-sm font-medium mb-2">
-                                        <FiGlobe className="inline mr-2" />
-                                        Langue
+                                        🌐 Langue
                                     </label>
                                     <select
                                         value={preferences.language}
@@ -415,59 +469,52 @@ const FreelancerSettings = () => {
                                 </div>
 
                                 {/* Thème */}
-                                <div>
+                                <div className="md:col-span-2">
                                     <label className="block text-[#6B5E4F] text-sm font-medium mb-2">
                                         Thème
                                     </label>
                                     <div className="flex gap-3">
                                         <button
                                             onClick={() => handlePreferenceChange('theme', 'light')}
-                                            className={`flex-1 flex items-center justify-center gap-2 px-4 py-2 rounded-xl border transition-all ${
+                                            className={`flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-xl border transition-all ${
                                                 preferences.theme === 'light'
                                                     ? 'border-[#3D5A3E] bg-[#E8EDE6] text-[#3D5A3E]'
                                                     : 'border-[#E8E2D9] hover:border-[#3D5A3E]'
                                             }`}
                                         >
-                                            <FiSun size={16} />
-                                            Clair
+                                            <FiSun size={18} />
+                                            <span>Clair</span>
                                         </button>
                                         <button
                                             onClick={() => handlePreferenceChange('theme', 'dark')}
-                                            className={`flex-1 flex items-center justify-center gap-2 px-4 py-2 rounded-xl border transition-all ${
+                                            className={`flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-xl border transition-all ${
                                                 preferences.theme === 'dark'
                                                     ? 'border-[#3D5A3E] bg-[#E8EDE6] text-[#3D5A3E]'
                                                     : 'border-[#E8E2D9] hover:border-[#3D5A3E]'
                                             }`}
                                         >
-                                            <FiMoon size={16} />
-                                            Sombre
+                                            <FiMoon size={18} />
+                                            <span>Sombre</span>
                                         </button>
                                     </div>
-                                </div>
-
-                                {/* Fuseau horaire */}
-                                <div>
-                                    <label className="block text-[#6B5E4F] text-sm font-medium mb-2">
-                                        Fuseau horaire
-                                    </label>
-                                    <select
-                                        value={preferences.timezone}
-                                        onChange={(e) => handlePreferenceChange('timezone', e.target.value)}
-                                        className="w-full px-4 py-2 bg-[#FAF8F5] border border-[#E8E2D9] rounded-xl focus:outline-none focus:border-[#3D5A3E] transition-all"
-                                    >
-                                        <option value="Africa/Casablanca">Casablanca (UTC+1)</option>
-                                        <option value="Europe/Paris">Paris (UTC+1)</option>
-                                        <option value="UTC">UTC</option>
-                                        <option value="America/New_York">New York (UTC-5)</option>
-                                    </select>
                                 </div>
                             </div>
                         </div>
                     )}
                 </div>
             </div>
+
+            <style>{`
+                @keyframes fadeIn {
+                    from { opacity: 0; transform: translateY(-10px); }
+                    to { opacity: 1; transform: translateY(0); }
+                }
+                .animate-fade-in {
+                    animation: fadeIn 0.3s ease-out;
+                }
+            `}</style>
         </div>
     );
 };
 
-export default FreelancerSettings;
+export default ClientSettings;

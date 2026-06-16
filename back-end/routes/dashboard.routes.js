@@ -1,14 +1,19 @@
 // routes/dashboard.routes.js
-
 const express = require('express');
 const router = express.Router();
-const { protect } = require('../middleware/auth.middleware');
-const { admin, freelancer, client } = require('../middleware/auth.middleware');
-const { getFreelancerDashboard, getClientDashboard, getAdminDashboard } = require('../controllers/dashboardController');
+const { protect } = require('../middleware/auth.middleware'); // ✅ Vérifiez le nom du fichier
 
-// Routes protégées selon rôle
-router.get('/freelancer', protect, freelancer, getFreelancerDashboard);
-router.get('/client', protect, client, getClientDashboard);
-router.get('/admin', protect, admin, getAdminDashboard);
+const {
+    getFreelancerDashboard,
+    getClientDashboard,
+    getAdminDashboard
+} = require('../controllers/dashboardController');
+
+// Toutes les routes sont protégées
+router.use(protect);
+
+router.get('/freelancer', getFreelancerDashboard);
+router.get('/client', getClientDashboard);
+router.get('/admin', getAdminDashboard);
 
 module.exports = router;

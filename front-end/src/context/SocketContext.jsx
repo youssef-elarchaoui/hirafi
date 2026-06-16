@@ -1,102 +1,151 @@
-// import React, { createContext, useContext, useEffect, useState } from 'react';
-// import io from 'socket.io-client';
-// import { useAuth } from './AuthContext';
+// src/context/SocketProvider.jsx
+import React, { createContext, useContext, useEffect, useState } from 'react';
+import io from 'socket.io-client';
+import { useAuth } from '../hooks/useAuth';
 
-// const SocketContext = createContext(null);
+const SocketContext = createContext(null);
 
-// export const useSocket = () => {
-//     const context = useContext(SocketContext);
-//     if (!context) {
-//         throw new Error('useSocket must be used within SocketProvider');
-//     }
-//     return context;
-// };
+export const useSocket = () => {
+    const context = useContext(SocketContext);
+    if (!context) {
+        throw new Error('useSocket must be used within SocketProvider');
+    }
+    return context;
+};
 
-// export const SocketProvider = ({ children }) => {
-//     const [socket, setSocket] = useState(null);
-//     const [isConnected, setIsConnected] = useState(false);
-//     const { user, isAuthenticated } = useAuth();
+export const SocketProvider = ({ children }) => {
+    const [socket, setSocket] = useState(null);
+    const [isConnected, setIsConnected] = useState(false);
+    const { user, isAuthenticated, loading } = useAuth();
 
-//     useEffect(() => {
-//         if (!isAuthenticated || !user) return;
+    useEffect(() => {
+        console.log('🔄 SocketProvider - isAuthenticated:', isAuthenticated);
+        console.log('🔄 SocketProvider - loading:', loading);
+        console.log('🔄 SocketProvider - user:', user?._id);
 
-//         const SOCKET_URL = import.meta.env.VITE_SOCKET_URL || 'http://localhost:5000';
-//         const newSocket = io(SOCKET_URL, {
-//             transports: ['websocket'],
-//             withCredentials: true
-//         });
+        // ✅ Attendre que l'authentification soit terminée
+        if (loading) {
+            console.log('⏳ Auth en cours de chargement...');
+            return;
+        }
 
-//         newSocket.on('connect', () => {
-//             console.log('🟢 Socket connecté');
-//             setIsConnected(true);
-//             newSocket.emit('authenticate', user._id);
-//         });
+        if (!isAuthenticated || !user) {
+            console.log('⏳ Utilisateur non authentifié, attente...');
+            return;
+        }
 
-//         newSocket.on('disconnect', () => {
-//             console.log('🔴 Socket déconnecté');
-//             setIsConnected(false);
-//         });
+        const SOCKET_URL = import.meta.env.VITE_SOCKET_URL || 'http://localhost:5000';
+        console.log('🔄 Connexion Socket à:', SOCKET_URL);
+        
+        // ✅ Fermer l'ancien socket s'il existe
+        if (socket) {
+            socket.disconnect();
+        }
+        
+        const newSocket = io(SOCKET_URL, {
+            transports: ['websocket', 'polling'],
+            withCredentials: true,
+            reconnection: true,
+            reconnectionAttempts: 10,
+            reconnectionDelay: 1000,
+            reconnectionDelayMax: 5000,
+            timeout: 20000,
+        });
 
-//         setSocket(newSocket);
+        newSocket.on('connect', () => {
+            console.log('🟢 Socket connecté avec ID:', newSocket.id);
+            setIsConnected(true);
+            newSocket.emit('authenticate', user._id);
+        });
 
-//         return () => {
-//             newSocket.close();
-//         };
-//     }, [isAuthenticated, user]);
+        newSocket.on('connect_error', (error) => {
+            console.error('❌ Socket connect_error:', error.message);
+            setIsConnected(false);
+        });
 
-//     const sendMessage = (receiverId, message, orderId = null) => {
-//         if (socket && isConnected) {
-//             socket.emit('private_message', {
-//                 senderId: user?._id,
-//                 receiverId,
-//                 message,
-//                 orderId,
-//                 tempId: Date.now().toString()
-//             });
-//         }
-//     };
+        newSocket.on('disconnect', (reason) => {
+            console.log('🔴 Socket déconnecté:', reason);
+            setIsConnected(false);
+        });
 
-//     const joinRoom = (roomId) => {
-//         if (socket && isConnected) {
-//             socket.emit('join_room', roomId);
-//         }
-//     };
+        newSocket.on('reconnect', (attemptNumber) => {
+            console.log(`🔄 Socket reconnecté après ${attemptNumber} tentatives`);
+            setIsConnected(true);
+            if (user?._id) {
+                newSocket.emit('authenticate', user._id);
+            }
+        });
 
-//     const leaveRoom = (roomId) => {
-//         if (socket && isConnected) {
-//             socket.emit('leave_room', roomId);
-//         }
-//     };
+        setSocket(newSocket);
 
-//     const sendTyping = (receiverId, isTyping) => {
-//         if (socket && isConnected) {
-//             socket.emit('typing', {
-//                 receiverId,
-//                 senderId: user?._id,
-//                 isTyping
-//             });
-//         }
-//     };
+        return () => {
+            console.log('🧹 Nettoyage du socket');
+            if (newSocket) {
+                newSocket.disconnect();
+                newSocket.close();
+            }
+        };
+    }, [isAuthenticated, user, loading]);
 
-//     const onEvent = (event, callback) => {
-//         if (socket) {
-//             socket.on(event, callback);
-//             return () => socket.off(event, callback);
-//         }
-//         return () => {};
-//     };
+    const sendMessage = (receiverId, message, orderId = null) => {
+        if (socket && isConnected) {
+            socket.emit('private_message', {
+                senderId: user?._id,
+                receiverId,
+                message,
+                orderId,
+                tempId: Date.now().toString()
+            });
+        } else {
+            console.warn('⚠️ Socket non connecté, message non envoyé');
+        }
+    };
 
-//     const value = {
-//         socket,
-//         isConnected,
-//         sendMessage,
-//         joinRoom,
-//         leaveRoom,
-//         sendTyping,
-//         onEvent
-//     };
+    const joinRoom = (roomId) => {
+        if (socket && isConnected) {
+            socket.emit('join_room', roomId);
+        }
+    };
 
-//     return React.createElement(SocketContext.Provider, { value }, children);
-// };
+    const leaveRoom = (roomId) => {
+        if (socket && isConnected) {
+            socket.emit('leave_room', roomId);
+        }
+    };
 
-// export default SocketContext;
+    const sendTyping = (receiverId, isTyping) => {
+        if (socket && isConnected) {
+            socket.emit('typing', {
+                receiverId,
+                senderId: user?._id,
+                isTyping
+            });
+        }
+    };
+
+    const onEvent = (event, callback) => {
+        if (socket) {
+            socket.on(event, callback);
+            return () => socket.off(event, callback);
+        }
+        return () => {};
+    };
+
+    const value = {
+        socket,
+        isConnected,
+        sendMessage,
+        joinRoom,
+        leaveRoom,
+        sendTyping,
+        onEvent
+    };
+
+    return (
+        <SocketContext.Provider value={value}>
+            {children}
+        </SocketContext.Provider>
+    );
+};
+
+export default SocketContext;

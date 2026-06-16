@@ -1,28 +1,28 @@
-// src/components/layout/FreelancerLayout.jsx
+// src/components/layout/ClientLayout.jsx
 import React, { useState } from 'react';
 import { Link, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
 import { 
-  FiHome, FiPackage, FiBriefcase, FiUser, FiSettings, 
-  FiLogOut, FiMenu, FiX, FiChevronRight, FiStar, 
-  FiTrendingUp, FiMessageSquare, FiBell, FiArrowLeft
+  FiHome, FiPackage, FiUser, FiSettings, 
+  FiLogOut, FiMenu, FiX, FiChevronRight, FiStar,
+  FiTrendingUp, FiMessageSquare, FiBell, FiArrowLeft,
+  FiShoppingBag, FiHeart, FiClock, FiDollarSign
 } from 'react-icons/fi';
 
-const FreelancerLayout = () => {
+const ClientLayout = () => {
     const { user, logout } = useAuth();
     const location = useLocation();
     const navigate = useNavigate();
-    const [isSidebarOpen, setIsSidebarOpen] = useState(false);
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
-    const menuItems = [
-        { path: '/freelancer/dashboard', label: 'Tableau de bord', icon: FiHome },
-        { path: '/freelancer/orders', label: 'Mes commandes', icon: FiPackage },
-        { path: '/freelancer/services', label: 'Mes services', icon: FiBriefcase },
-        { path: '/freelancer/messages', label: 'Messages', icon: FiMessageSquare },
-        { path: '/freelancer/profile', label: 'Mon profil', icon: FiUser },
-        { path: '/freelancer/settings', label: 'Paramètres', icon: FiSettings },
-    ];
+const menuItems = [
+    { path: '/client/dashboard', label: 'Tableau de bord', icon: FiHome },
+    { path: '/client/orders', label: 'Mes commandes', icon: FiPackage },
+    { path: '/client/wishlist', label: 'Liste de souhaits', icon: FiHeart },
+    { path: '/client/messages', label: 'Messages', icon: FiMessageSquare }, // ✅ Ajouté
+    { path: '/client/profile', label: 'Mon profil', icon: FiUser },
+    { path: '/client/settings', label: 'Paramètres', icon: FiSettings },
+];
 
     const handleLogout = () => {
         logout();
@@ -46,6 +46,10 @@ const FreelancerLayout = () => {
                         {isMobileMenuOpen ? <FiX size={24} /> : <FiMenu size={24} />}
                     </button>
                     
+                    <Link to="/" className="text-xl font-display font-black text-[#3D5A3E]">
+                        حريفي
+                    </Link>
+                    
                     <div className="flex items-center gap-3">
                         <button className="p-2 rounded-lg hover:bg-[#E8EDE6] transition-colors relative">
                             <FiBell size={20} />
@@ -63,7 +67,7 @@ const FreelancerLayout = () => {
                 <div className="px-4 pb-3 border-t border-[#E8E2D9] pt-3">
                     <button
                         onClick={() => navigate('/')}
-                        className="flex items-center gap-2 text-[#6B5E4F] hover:text-[#3D5A3E] transition-colors w-full justify-center py-2 bg-[#E8EDE6] rounded-xl"
+                        className="flex items-center gap-2 text-[#6B5E4F] hover:text-[#3D5A3E] transition-colors w-full justify-center py-2 bg-[#E8EDE6] rounded-xl text-sm"
                     >
                         <FiArrowLeft size={16} />
                         Retour à l'accueil
@@ -92,13 +96,14 @@ const FreelancerLayout = () => {
                                         <h3 className="font-semibold text-white">{user?.name}</h3>
                                         <p className="text-white/70 text-xs">{user?.email}</p>
                                         <div className="flex items-center gap-1 mt-1">
+                                            
                                         </div>
                                     </div>
                                 </div>
                             </div>
 
                             {/* Navigation Menu */}
-                            <div className="flex-1 py-4">
+                            <div className="flex-1 py-4 overflow-y-auto">
                                 {menuItems.map((item) => (
                                     <Link
                                         key={item.path}
@@ -119,6 +124,14 @@ const FreelancerLayout = () => {
 
                             {/* Footer */}
                             <div className="p-4 border-t border-[#E8E2D9] space-y-2">
+                                <Link 
+                                    to="/" 
+                                    onClick={() => setIsMobileMenuOpen(false)}
+                                    className="flex items-center gap-3 w-full px-4 py-2 text-[#6B5E4F] hover:bg-[#E8EDE6] rounded-lg transition-colors"
+                                >
+                                    <FiArrowLeft size={18} />
+                                    <span className="font-medium">Retour à l'accueil</span>
+                                </Link>
                                 <button
                                     onClick={handleLogout}
                                     className="flex items-center gap-3 w-full px-4 py-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
@@ -162,7 +175,7 @@ const FreelancerLayout = () => {
                     </div>
 
                     {/* Navigation */}
-                    <nav className="flex-1 py-6">
+                    <nav className="flex-1 py-6 overflow-y-auto">
                         {menuItems.map((item) => (
                             <Link
                                 key={item.path}
@@ -181,7 +194,14 @@ const FreelancerLayout = () => {
                     </nav>
 
                     {/* Footer */}
-                    <div className="p-4 border-t border-[#E8E2D9]">
+                    <div className="p-4 border-t border-[#E8E2D9] space-y-2">
+                        <Link 
+                            to="/" 
+                            className="flex items-center gap-3 w-full px-4 py-2 text-[#6B5E4F] hover:bg-[#E8EDE6] rounded-lg transition-colors"
+                        >
+                            <FiArrowLeft size={18} />
+                            <span className="font-medium">Retour à l'accueil</span>
+                        </Link>
                         <button
                             onClick={handleLogout}
                             className="flex items-center gap-3 w-full px-4 py-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
@@ -199,7 +219,7 @@ const FreelancerLayout = () => {
                         <div className="flex items-center justify-between px-8 py-4">
                             <div className="flex items-center gap-4">
                                 <h1 className="text-xl font-heading font-semibold text-[#1A1208]">
-                                    Espace Artisan
+                                    Espace Client
                                 </h1>
                                 <div className="flex items-center gap-2 text-sm text-[#6B5E4F]">
                                     <FiTrendingUp size={14} />
@@ -207,7 +227,6 @@ const FreelancerLayout = () => {
                                 </div>
                             </div>
                             <div className="flex items-center gap-4">
-                                {/* Bouton retour à l'accueil sur desktop */}
                                 <button
                                     onClick={() => navigate('/')}
                                     className="flex items-center gap-2 px-4 py-2 text-[#6B5E4F] hover:text-[#3D5A3E] hover:bg-[#E8EDE6] rounded-xl transition-all"
@@ -260,4 +279,4 @@ const FreelancerLayout = () => {
     );
 };
 
-export default FreelancerLayout;
+export default ClientLayout;

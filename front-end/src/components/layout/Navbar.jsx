@@ -6,7 +6,8 @@ import {
     FiBell, FiMessageSquare, FiUser, FiLogOut, 
     FiHome, FiCompass, FiShoppingBag, FiHeart, FiSettings,
     FiMenu, FiX, FiChevronDown, FiBriefcase, FiUsers, FiStar,
-    FiTrendingUp, FiAward, FiHelpCircle, FiShield, FiMail, FiInfo
+    FiTrendingUp, FiAward, FiHelpCircle, FiShield, FiMail, FiInfo,
+    FiBarChart2, FiDollarSign
 } from 'react-icons/fi';
 
 function Navbar() {
@@ -51,14 +52,20 @@ function Navbar() {
     };
 
     const getDashboardIcon = () => {
-        if (user?.role === 'admin') return <FiSettings />;
+        if (user?.role === 'admin') return <FiBarChart2 />;
         if (user?.role === 'freelancer') return <FiBriefcase />;
         return <FiUser />;
     };
 
+    const getDashboardLabel = () => {
+        if (user?.role === 'admin') return 'Dashboard';
+        if (user?.role === 'freelancer') return 'Espace Artisan';
+        return 'Espace Client';
+    };
+
     const unreadCount = notifications.filter(n => !n.read).length;
 
-    // Navigation Links
+    // Navigation Links - Public
     const navLinks = [
         { path: '/', label: 'Accueil', icon: <FiHome size={18} /> },
         { path: '/services', label: 'Services', icon: <FiCompass size={18} /> },
@@ -67,7 +74,48 @@ function Navbar() {
         { path: '/success-stories', label: 'Success Stories', icon: <FiStar size={18} /> },
     ];
 
-    // Footer Links (pour le mobile menu)
+    // ✅ Menu items selon le rôle
+    const getUserMenuItems = () => {
+        const role = user?.role;
+        
+        // Admin
+        if (role === 'admin') {
+            return [
+                { path: '/admin/dashboard', label: 'Dashboard', icon: <FiBarChart2 size={18} /> },
+                { path: '/admin/users', label: 'Utilisateurs', icon: <FiUsers size={18} /> },
+                { path: '/admin/orders', label: 'Commandes', icon: <FiShoppingBag size={18} /> },
+                { path: '/admin/services', label: 'Services', icon: <FiBriefcase size={18} /> },
+                { path: '/admin/reviews', label: 'Avis', icon: <FiStar size={18} /> },
+                { path: '/messages', label: 'Messages', icon: <FiMessageSquare size={18} /> },
+            ];
+        }
+        
+        // Freelancer
+        if (role === 'freelancer') {
+            return [
+                { path: '/freelancer/dashboard', label: 'Tableau de bord', icon: <FiBriefcase size={18} /> },
+                { path: '/freelancer/orders', label: 'Commandes reçues', icon: <FiShoppingBag size={18} /> },
+                { path: '/freelancer/services', label: 'Mes services', icon: <FiBriefcase size={18} /> },
+                { path: '/messages', label: 'Messages', icon: <FiMessageSquare size={18} /> },
+                { path: '/freelancer/profile', label: 'Mon profil', icon: <FiUser size={18} /> },
+            ];
+        }
+        
+        // Client
+        if (role === 'client') {
+            return [
+                { path: '/client/dashboard', label: 'Tableau de bord', icon: <FiUser size={18} /> },
+                { path: '/client/orders', label: 'Mes commandes', icon: <FiShoppingBag size={18} /> },
+                { path: '/client/wishlist', label: 'Liste de souhaits', icon: <FiHeart size={18} /> },
+                { path: '/messages', label: 'Messages', icon: <FiMessageSquare size={18} /> },
+                { path: '/client/profile', label: 'Mon profil', icon: <FiUser size={18} /> },
+            ];
+        }
+        
+        return [];
+    };
+
+    // ✅ Footer Links (mobile menu)
     const footerLinks = [
         { 
             title: 'À propos', 
@@ -87,6 +135,43 @@ function Navbar() {
         }
     ];
 
+    // ✅ Mobile Bottom Navigation selon le rôle
+    const getBottomNavItems = () => {
+        const role = user?.role;
+        
+        if (role === 'admin') {
+            return [
+                { path: '/', label: 'Accueil', icon: <FiHome size={20} /> },
+                { path: '/admin/dashboard', label: 'Dashboard', icon: <FiBarChart2 size={20} /> },
+                { path: '/admin/users', label: 'Users', icon: <FiUsers size={20} /> },
+                { path: '/messages', label: 'Messages', icon: <FiMessageSquare size={20} /> },
+                { path: '/admin/dashboard', label: 'Admin', icon: <FiSettings size={20} /> },
+            ];
+        }
+        
+        if (role === 'freelancer') {
+            return [
+                { path: '/', label: 'Accueil', icon: <FiHome size={20} /> },
+                { path: '/services', label: 'Services', icon: <FiCompass size={20} /> },
+                { path: '/freelancer/orders', label: 'Commandes', icon: <FiShoppingBag size={20} /> },
+                { path: '/messages', label: 'Messages', icon: <FiMessageSquare size={20} /> },
+                { path: '/freelancer/dashboard', label: 'Profil', icon: <FiUser size={20} /> },
+            ];
+        }
+        
+        if (role === 'client') {
+            return [
+                { path: '/', label: 'Accueil', icon: <FiHome size={20} /> },
+                { path: '/services', label: 'Services', icon: <FiCompass size={20} /> },
+                { path: '/client/orders', label: 'Commandes', icon: <FiShoppingBag size={20} /> },
+                { path: '/messages', label: 'Messages', icon: <FiMessageSquare size={20} /> },
+                { path: '/client/dashboard', label: 'Profil', icon: <FiUser size={20} /> },
+            ];
+        }
+        
+        return [];
+    };
+
     return (
         <>
             {/* Main Navbar */}
@@ -105,12 +190,12 @@ function Navbar() {
                                 className="group relative"
                             >
                                 <span className="text-2xl md:text-[2rem] font-display font-black text-[#3D5A3E] dark:text-[#3D5A3E] tracking-tight">
-                                    حريفي
+                                    حرفي
                                 </span>
                                 <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-[#C47D4E] group-hover:w-full transition-all duration-300"></span>
                             </Link>
                             
-                            {/* Desktop Navigation Links */}
+                            {/* Desktop Navigation Links - Public */}
                             <div className="hidden lg:flex items-center gap-1">
                                 {navLinks.map((link) => (
                                     <Link
@@ -138,7 +223,7 @@ function Navbar() {
                         <div className="hidden md:flex items-center gap-3">
                             {user ? (
                                 <>
-                                    {/* Notifications */}
+                                    {/* Notifications - Visible pour tous */}
                                     <div className="relative">
                                         <button 
                                             className="relative p-2 rounded-full hover:bg-[#EBEFE8] dark:hover:bg-gray-800 transition-all"
@@ -153,7 +238,7 @@ function Navbar() {
                                         </button>
                                     </div>
 
-                                    {/* Messages */}
+                                    {/* Messages - Visible pour tous */}
                                     <Link 
                                         to="/messages"
                                         className="relative p-2 rounded-full hover:bg-[#EBEFE8] dark:hover:bg-gray-800 transition-all"
@@ -176,7 +261,7 @@ function Navbar() {
                                             <FiChevronDown size={16} className={`text-[#6B5E4F] transition-transform duration-200 ${isUserMenuOpen ? 'rotate-180' : ''}`} />
                                         </button>
 
-                                        {/* Dropdown Menu */}
+                                        {/* Dropdown Menu avec items dynamiques */}
                                         {isUserMenuOpen && (
                                             <>
                                                 <div 
@@ -192,34 +277,17 @@ function Navbar() {
                                                         </span>
                                                     </div>
                                                     <div className="py-2">
-                                                        <Link 
-                                                            to={getDashboardLink()}
-                                                            className="flex items-center gap-3 px-4 py-2 text-[#1A1208] dark:text-gray-300 hover:bg-[#EBEFE8] dark:hover:bg-gray-700 transition-colors"
-                                                        >
-                                                            {getDashboardIcon()}
-                                                            Tableau de bord
-                                                        </Link>
-                                                        <Link 
-                                                            to="/profile"
-                                                            className="flex items-center gap-3 px-4 py-2 text-[#1A1208] dark:text-gray-300 hover:bg-[#EBEFE8] dark:hover:bg-gray-700 transition-colors"
-                                                        >
-                                                            <FiUser size={18} />
-                                                            Mon profil
-                                                        </Link>
-                                                        <Link 
-                                                            to="/orders"
-                                                            className="flex items-center gap-3 px-4 py-2 text-[#1A1208] dark:text-gray-300 hover:bg-[#EBEFE8] dark:hover:bg-gray-700 transition-colors"
-                                                        >
-                                                            <FiShoppingBag size={18} />
-                                                            Mes commandes
-                                                        </Link>
-                                                        <Link 
-                                                            to="/wishlist"
-                                                            className="flex items-center gap-3 px-4 py-2 text-[#1A1208] dark:text-gray-300 hover:bg-[#EBEFE8] dark:hover:bg-gray-700 transition-colors"
-                                                        >
-                                                            <FiHeart size={18} />
-                                                            Liste de souhaits
-                                                        </Link>
+                                                        {getUserMenuItems().map((item) => (
+                                                            <Link 
+                                                                key={item.path}
+                                                                to={item.path}
+                                                                onClick={() => setIsUserMenuOpen(false)}
+                                                                className="flex items-center gap-3 px-4 py-2 text-[#1A1208] dark:text-gray-300 hover:bg-[#EBEFE8] dark:hover:bg-gray-700 transition-colors"
+                                                            >
+                                                                {item.icon}
+                                                                {item.label}
+                                                            </Link>
+                                                        ))}
                                                         <div className="border-t border-[#E8E2D9] dark:border-gray-700 my-1"></div>
                                                         <button
                                                             onClick={handleLogout}
@@ -238,7 +306,7 @@ function Navbar() {
                                 <div className="flex items-center gap-3">
                                     <Link 
                                         to="/login" 
-                                        className="group relative px-5 py-2.5 bg-transparent text-[#3D5A3E] dark:text-[#3D5A3E] font-semibold rounded-lg transition-all duration-200 overflow-hidden border-2  dark:border-[#3D5A3E] hover:bg-[#3D5A3E] hover:text-white"
+                                        className="group relative px-5 py-2.5 bg-transparent text-[#3D5A3E] dark:text-[#3D5A3E] font-semibold rounded-lg transition-all duration-200 overflow-hidden border-2 dark:border-[#3D5A3E] hover:bg-[#3D5A3E] hover:text-white"
                                     >
                                         Connexion
                                     </Link>
@@ -265,70 +333,32 @@ function Navbar() {
                 </div>
             </nav>
 
-            {/* Mobile Bottom Navigation (when logged in) */}
+            {/* Mobile Bottom Navigation selon le rôle */}
             {user && (
                 <div className="md:hidden fixed bottom-0 left-0 right-0 bg-white/95 dark:bg-gray-900/95 backdrop-blur-md border-t border-[#E8E2D9] dark:border-gray-700 z-40 animate-slide-up">
                     <div className="flex justify-around items-center py-2">
-                        <Link 
-                            to="/"
-                            className={`flex flex-col items-center p-2 transition-all ${
-                                location.pathname === '/'
-                                    ? 'text-[#3D5A3E] dark:text-[#3D5A3E]'
-                                    : 'text-[#6B5E4F] dark:text-gray-400 hover:text-[#3D5A3E]'
-                            }`}
-                        >
-                            <FiHome size={20} />
-                            <span className="text-xs mt-1">Accueil</span>
-                        </Link>
-                        <Link 
-                            to="/services"
-                            className={`flex flex-col items-center p-2 transition-all ${
-                                location.pathname === '/services'
-                                    ? 'text-[#3D5A3E] dark:text-[#3D5A3E]'
-                                    : 'text-[#6B5E4F] dark:text-gray-400 hover:text-[#3D5A3E]'
-                            }`}
-                        >
-                            <FiCompass size={20} />
-                            <span className="text-xs mt-1">Services</span>
-                        </Link>
-                        <Link 
-                            to="/freelancers"
-                            className={`flex flex-col items-center p-2 transition-all ${
-                                location.pathname === '/freelancers'
-                                    ? 'text-[#3D5A3E] dark:text-[#3D5A3E]'
-                                    : 'text-[#6B5E4F] dark:text-gray-400 hover:text-[#3D5A3E]'
-                            }`}
-                        >
-                            <FiUsers size={20} />
-                            <span className="text-xs mt-1">Artisans</span>
-                        </Link>
-                        <Link 
-                            to="/orders"
-                            className={`flex flex-col items-center p-2 transition-all ${
-                                location.pathname === '/orders'
-                                    ? 'text-[#3D5A3E] dark:text-[#3D5A3E]'
-                                    : 'text-[#6B5E4F] dark:text-gray-400 hover:text-[#3D5A3E]'
-                            }`}
-                        >
-                            <FiShoppingBag size={20} />
-                            <span className="text-xs mt-1">Commandes</span>
-                        </Link>
-                        <Link 
-                            to={getDashboardLink()}
-                            className={`flex flex-col items-center p-2 transition-all ${
-                                location.pathname === getDashboardLink()
-                                    ? 'text-[#3D5A3E] dark:text-[#3D5A3E]'
-                                    : 'text-[#6B5E4F] dark:text-gray-400 hover:text-[#3D5A3E]'
-                            }`}
-                        >
-                            {getDashboardIcon()}
-                            <span className="text-xs mt-1">Profil</span>
-                        </Link>
+                        {getBottomNavItems().map((item) => (
+                            <Link 
+                                key={item.path}
+                                to={item.path}
+                                className={`flex flex-col items-center p-2 transition-all ${
+                                    location.pathname === item.path
+                                        ? 'text-[#3D5A3E] dark:text-[#3D5A3E]'
+                                        : 'text-[#6B5E4F] dark:text-gray-400 hover:text-[#3D5A3E]'
+                                }`}
+                            >
+                                {item.icon}
+                                <span className="text-xs mt-1">{item.label}</span>
+                                {location.pathname === item.path && (
+                                    <span className="w-1 h-1 mt-1 bg-[#C47D4E] rounded-full"></span>
+                                )}
+                            </Link>
+                        ))}
                     </div>
                 </div>
             )}
 
-            {/* Mobile Slide-out Menu */}
+            {/* Mobile Slide-out Menu avec items dynamiques */}
             {isMobileMenuOpen && (
                 <>
                     <div 
@@ -380,7 +410,7 @@ function Navbar() {
 
                         {/* Mobile Menu Links */}
                         <div className="flex-1 py-4">
-                            {/* Main Navigation */}
+                            {/* Main Navigation - Public */}
                             <div className="px-4">
                                 <p className="text-xs font-semibold text-[#6B5E4F] dark:text-gray-400 uppercase tracking-wider mb-2 px-2">
                                     Navigation
@@ -406,61 +436,27 @@ function Navbar() {
                                 <>
                                     <div className="border-t border-[#E8E2D9] dark:border-gray-700 my-4"></div>
                                     
-                                    {/* User Menu Items */}
+                                    {/* User Menu Items - Dynamique selon rôle */}
                                     <div className="px-4">
                                         <p className="text-xs font-semibold text-[#6B5E4F] dark:text-gray-400 uppercase tracking-wider mb-2 px-2">
-                                            Mon compte
+                                            {user.role === 'admin' ? 'Administration' : 'Mon compte'}
                                         </p>
-                                        <Link 
-                                            to={getDashboardLink()} 
-                                            onClick={() => setIsMobileMenuOpen(false)}
-                                            className="flex items-center gap-3 px-4 py-3 rounded-lg text-[#1A1208] dark:text-gray-300 hover:bg-[#EBEFE8] dark:hover:bg-gray-800 transition-all"
-                                        >
-                                            {getDashboardIcon()}
-                                            Tableau de bord
-                                        </Link>
-                                        <Link 
-                                            to="/profile" 
-                                            onClick={() => setIsMobileMenuOpen(false)}
-                                            className="flex items-center gap-3 px-4 py-3 rounded-lg text-[#1A1208] dark:text-gray-300 hover:bg-[#EBEFE8] dark:hover:bg-gray-800 transition-all"
-                                        >
-                                            <FiUser size={18} />
-                                            Mon profil
-                                        </Link>
-                                        <Link 
-                                            to="/orders" 
-                                            onClick={() => setIsMobileMenuOpen(false)}
-                                            className="flex items-center gap-3 px-4 py-3 rounded-lg text-[#1A1208] dark:text-gray-300 hover:bg-[#EBEFE8] dark:hover:bg-gray-800 transition-all"
-                                        >
-                                            <FiShoppingBag size={18} />
-                                            Mes commandes
-                                        </Link>
-                                        <Link 
-                                            to="/wishlist" 
-                                            onClick={() => setIsMobileMenuOpen(false)}
-                                            className="flex items-center gap-3 px-4 py-3 rounded-lg text-[#1A1208] dark:text-gray-300 hover:bg-[#EBEFE8] dark:hover:bg-gray-800 transition-all"
-                                        >
-                                            <FiHeart size={18} />
-                                            Liste de souhaits
-                                        </Link>
-                                        <Link 
-                                            to="/messages" 
-                                            onClick={() => setIsMobileMenuOpen(false)}
-                                            className="flex items-center gap-3 px-4 py-3 rounded-lg text-[#1A1208] dark:text-gray-300 hover:bg-[#EBEFE8] dark:hover:bg-gray-800 transition-all"
-                                        >
-                                            <FiMessageSquare size={18} />
-                                            Messages
-                                            {unreadCount > 0 && (
-                                                <span className="ml-auto bg-red-500 text-white text-xs px-1.5 py-0.5 rounded-full">
-                                                    {unreadCount}
-                                                </span>
-                                            )}
-                                        </Link>
+                                        {getUserMenuItems().map((item) => (
+                                            <Link 
+                                                key={item.path}
+                                                to={item.path} 
+                                                onClick={() => setIsMobileMenuOpen(false)}
+                                                className="flex items-center gap-3 px-4 py-3 rounded-lg text-[#1A1208] dark:text-gray-300 hover:bg-[#EBEFE8] dark:hover:bg-gray-800 transition-all"
+                                            >
+                                                {item.icon}
+                                                {item.label}
+                                            </Link>
+                                        ))}
                                     </div>
                                 </>
                             )}
 
-                            {/* Footer Links in Mobile Menu */}
+                            {/* Footer Links */}
                             <div className="border-t border-[#E8E2D9] dark:border-gray-700 my-4"></div>
                             
                             {footerLinks.map((section, idx) => (

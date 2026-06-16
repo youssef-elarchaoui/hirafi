@@ -396,7 +396,7 @@ const FreelancerOrders = () => {
                                         )}
                                         
                                         <Link
-                                            to={`/messages?order=${order._id}`}
+                                             to={`/messages?user=${order.clientId?._id || order.clientId}`}
                                             className="px-3 py-1.5 text-sm bg-[#E8EDE6] text-[#3D5A3E] rounded-lg hover:bg-[#3D5A3E] hover:text-white transition-all flex items-center gap-1"
                                         >
                                             <FiMessageSquare size={14} />

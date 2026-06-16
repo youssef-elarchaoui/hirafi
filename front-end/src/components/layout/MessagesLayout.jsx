@@ -1,28 +1,17 @@
-// src/components/layout/FreelancerLayout.jsx
+// src/components/layout/MessagesLayout.jsx
 import React, { useState } from 'react';
 import { Link, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
 import { 
-  FiHome, FiPackage, FiBriefcase, FiUser, FiSettings, 
-  FiLogOut, FiMenu, FiX, FiChevronRight, FiStar, 
-  FiTrendingUp, FiMessageSquare, FiBell, FiArrowLeft
+  FiArrowLeft, FiHome, FiMessageSquare, FiUsers,
+  FiBell, FiUser, FiLogOut, FiMenu, FiX
 } from 'react-icons/fi';
 
-const FreelancerLayout = () => {
+const MessagesLayout = () => {
     const { user, logout } = useAuth();
     const location = useLocation();
     const navigate = useNavigate();
-    const [isSidebarOpen, setIsSidebarOpen] = useState(false);
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-
-    const menuItems = [
-        { path: '/freelancer/dashboard', label: 'Tableau de bord', icon: FiHome },
-        { path: '/freelancer/orders', label: 'Mes commandes', icon: FiPackage },
-        { path: '/freelancer/services', label: 'Mes services', icon: FiBriefcase },
-        { path: '/freelancer/messages', label: 'Messages', icon: FiMessageSquare },
-        { path: '/freelancer/profile', label: 'Mon profil', icon: FiUser },
-        { path: '/freelancer/settings', label: 'Paramètres', icon: FiSettings },
-    ];
 
     const handleLogout = () => {
         logout();
@@ -46,6 +35,10 @@ const FreelancerLayout = () => {
                         {isMobileMenuOpen ? <FiX size={24} /> : <FiMenu size={24} />}
                     </button>
                     
+                    <Link to="/" className="text-xl font-display font-black text-[#3D5A3E]">
+                        حريفي
+                    </Link>
+                    
                     <div className="flex items-center gap-3">
                         <button className="p-2 rounded-lg hover:bg-[#E8EDE6] transition-colors relative">
                             <FiBell size={20} />
@@ -59,11 +52,11 @@ const FreelancerLayout = () => {
                     </div>
                 </div>
                 
-                {/* Bouton retour à l'accueil sur mobile */}
+                {/* Bouton retour à l'accueil */}
                 <div className="px-4 pb-3 border-t border-[#E8E2D9] pt-3">
                     <button
                         onClick={() => navigate('/')}
-                        className="flex items-center gap-2 text-[#6B5E4F] hover:text-[#3D5A3E] transition-colors w-full justify-center py-2 bg-[#E8EDE6] rounded-xl"
+                        className="flex items-center gap-2 text-[#6B5E4F] hover:text-[#3D5A3E] transition-colors w-full justify-center py-2 bg-[#E8EDE6] rounded-xl text-sm"
                     >
                         <FiArrowLeft size={16} />
                         Retour à l'accueil
@@ -71,7 +64,7 @@ const FreelancerLayout = () => {
                 </div>
             </div>
 
-            {/* Mobile Sidebar Drawer */}
+            {/* Mobile Menu Drawer */}
             {isMobileMenuOpen && (
                 <>
                     <div 
@@ -91,30 +84,40 @@ const FreelancerLayout = () => {
                                     <div className="flex-1">
                                         <h3 className="font-semibold text-white">{user?.name}</h3>
                                         <p className="text-white/70 text-xs">{user?.email}</p>
-                                        <div className="flex items-center gap-1 mt-1">
-                                        </div>
                                     </div>
                                 </div>
                             </div>
 
-                            {/* Navigation Menu */}
+                            {/* Navigation */}
                             <div className="flex-1 py-4">
-                                {menuItems.map((item) => (
-                                    <Link
-                                        key={item.path}
-                                        to={item.path}
-                                        onClick={() => setIsMobileMenuOpen(false)}
-                                        className={`flex items-center gap-3 px-6 py-3 transition-all ${
-                                            isActive(item.path)
-                                                ? 'bg-[#E8EDE6] text-[#3D5A3E] border-r-4 border-[#3D5A3E]'
-                                                : 'text-[#6B5E4F] hover:bg-[#E8EDE6] hover:text-[#3D5A3E]'
-                                        }`}
-                                    >
-                                        <item.icon size={20} />
-                                        <span className="font-medium">{item.label}</span>
-                                        {isActive(item.path) && <FiChevronRight className="ml-auto" size={16} />}
-                                    </Link>
-                                ))}
+                                <Link
+                                    to="/"
+                                    onClick={() => setIsMobileMenuOpen(false)}
+                                    className="flex items-center gap-3 px-6 py-3 text-[#6B5E4F] hover:bg-[#E8EDE6] hover:text-[#3D5A3E] transition-all"
+                                >
+                                    <FiHome size={20} />
+                                    <span className="font-medium">Accueil</span>
+                                </Link>
+                                <Link
+                                    to="/messages"
+                                    onClick={() => setIsMobileMenuOpen(false)}
+                                    className={`flex items-center gap-3 px-6 py-3 transition-all ${
+                                        isActive('/messages')
+                                            ? 'bg-[#E8EDE6] text-[#3D5A3E] border-r-4 border-[#3D5A3E]'
+                                            : 'text-[#6B5E4F] hover:bg-[#E8EDE6] hover:text-[#3D5A3E]'
+                                    }`}
+                                >
+                                    <FiMessageSquare size={20} />
+                                    <span className="font-medium">Messages</span>
+                                </Link>
+                                <Link
+                                    to={user?.role === 'client' ? '/client/dashboard' : '/freelancer/dashboard'}
+                                    onClick={() => setIsMobileMenuOpen(false)}
+                                    className="flex items-center gap-3 px-6 py-3 text-[#6B5E4F] hover:bg-[#E8EDE6] hover:text-[#3D5A3E] transition-all"
+                                >
+                                    <FiUser size={20} />
+                                    <span className="font-medium">Mon compte</span>
+                                </Link>
                             </div>
 
                             {/* Footer */}
@@ -134,91 +137,76 @@ const FreelancerLayout = () => {
 
             {/* Desktop Layout */}
             <div className="hidden lg:flex">
-                {/* Sidebar Desktop */}
-                <aside className="fixed left-0 top-0 bottom-0 w-72 bg-white border-r border-[#E8E2D9] flex flex-col z-20">
+                {/* Sidebar Desktop - Simplified */}
+                <aside className="fixed left-0 top-0 bottom-0 w-20 bg-white border-r border-[#E8E2D9] flex flex-col items-center z-20">
                     {/* Logo */}
-                    <div className="p-6 border-b border-[#E8E2D9]">
-                        <Link to="/" className="flex items-center justify-between group">
-                            <span className="text-2xl font-display font-black text-[#3D5A3E]">
-                                حريفي
-                            </span>
-                            <FiArrowLeft className="text-[#3D5A3E] opacity-0 group-hover:opacity-100 transition-opacity" size={18} />
+                    <div className="p-4 border-b border-[#E8E2D9] w-full flex justify-center">
+                        <Link to="/" className="text-2xl font-display font-black text-[#3D5A3E]">
+                            حرفي
                         </Link>
                     </div>
 
-                    {/* Profile Section */}
-                    <div className="p-6 border-b border-[#E8E2D9] bg-gradient-to-r from-[#3D5A3E] to-[#2D452E]">
-                        <div className="flex items-center gap-3">
-                            <img 
-                                src={user?.avatar || `https://ui-avatars.com/api/?background=fff&color=3D5A3E&bold=true&name=${user?.name || 'User'}`}
-                                alt={user?.name}
-                                className="w-14 h-14 rounded-full object-cover border-2 border-white"
-                            />
-                            <div className="flex-1">
-                                <h3 className="font-semibold text-white">{user?.name}</h3>
-                                <p className="text-white/70 text-xs">{user?.email}</p>
-                            </div>
-                        </div>
-                    </div>
-
-                    {/* Navigation */}
-                    <nav className="flex-1 py-6">
-                        {menuItems.map((item) => (
-                            <Link
-                                key={item.path}
-                                to={item.path}
-                                className={`flex items-center gap-3 px-6 py-3 transition-all ${
-                                    isActive(item.path)
-                                        ? 'bg-[#E8EDE6] text-[#3D5A3E] border-r-4 border-[#3D5A3E]'
-                                        : 'text-[#6B5E4F] hover:bg-[#E8EDE6] hover:text-[#3D5A3E]'
-                                }`}
-                            >
-                                <item.icon size={20} />
-                                <span className="font-medium">{item.label}</span>
-                                {isActive(item.path) && <FiChevronRight className="ml-auto" size={16} />}
-                            </Link>
-                        ))}
+                    {/* Navigation Icons */}
+                    <nav className="flex-1 py-6 flex flex-col items-center gap-2">
+                        <Link
+                            to="/"
+                            className="p-3 rounded-xl text-[#6B5E4F] hover:bg-[#E8EDE6] hover:text-[#3D5A3E] transition-all"
+                            title="Accueil"
+                        >
+                            <FiHome size={22} />
+                        </Link>
+                        <Link
+                            to="/messages"
+                            className={`p-3 rounded-xl transition-all ${
+                                isActive('/messages')
+                                    ? 'bg-[#E8EDE6] text-[#3D5A3E]'
+                                    : 'text-[#6B5E4F] hover:bg-[#E8EDE6] hover:text-[#3D5A3E]'
+                            }`}
+                            title="Messages"
+                        >
+                            <FiMessageSquare size={22} />
+                        </Link>
+                        <Link
+                            to={user?.role === 'client' ? '/client/dashboard' : '/freelancer/dashboard'}
+                            className="p-3 rounded-xl text-[#6B5E4F] hover:bg-[#E8EDE6] hover:text-[#3D5A3E] transition-all"
+                            title="Mon compte"
+                        >
+                            <FiUser size={22} />
+                        </Link>
                     </nav>
 
                     {/* Footer */}
-                    <div className="p-4 border-t border-[#E8E2D9]">
+                    <div className="p-4 border-t border-[#E8E2D9] w-full flex justify-center">
                         <button
                             onClick={handleLogout}
-                            className="flex items-center gap-3 w-full px-4 py-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                            className="p-3 rounded-xl text-red-500 hover:bg-red-50 transition-all"
+                            title="Déconnexion"
                         >
-                            <FiLogOut size={18} />
-                            <span className="font-medium">Déconnexion</span>
+                            <FiLogOut size={22} />
                         </button>
                     </div>
                 </aside>
 
                 {/* Main Content */}
-                <main className="flex-1 ml-72">
-                    {/* Desktop Header */}
+                <main className="flex-1 ml-20">
+                    {/* Header */}
                     <div className="sticky top-0 z-10 bg-white/80 backdrop-blur-md border-b border-[#E8E2D9]">
                         <div className="flex items-center justify-between px-8 py-4">
                             <div className="flex items-center gap-4">
-                                <h1 className="text-xl font-heading font-semibold text-[#1A1208]">
-                                    Espace Artisan
+                                <h1 className="text-xl font-heading font-semibold text-[#1A1208] flex items-center gap-2">
+                                    <FiMessageSquare className="text-[#3D5A3E]" />
+                                    Messages
                                 </h1>
-                                <div className="flex items-center gap-2 text-sm text-[#6B5E4F]">
-                                    <FiTrendingUp size={14} />
-                                    <span>Tableau de bord</span>
-                                </div>
+                                <span className="text-sm text-[#6B5E4F]">Discutez avec les artisans</span>
                             </div>
                             <div className="flex items-center gap-4">
-                                {/* Bouton retour à l'accueil sur desktop */}
-                                <button
-                                    onClick={() => navigate('/')}
+                                <Link
+                                    to="/"
                                     className="flex items-center gap-2 px-4 py-2 text-[#6B5E4F] hover:text-[#3D5A3E] hover:bg-[#E8EDE6] rounded-xl transition-all"
                                 >
                                     <FiArrowLeft size={16} />
                                     <span className="text-sm font-medium">Retour à l'accueil</span>
-                                </button>
-                                <button className="p-2 rounded-lg hover:bg-[#E8EDE6] transition-colors relative">
-                                    <FiBell size={20} />
-                                    <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full"></span>
-                                </button>
+                                </Link>
                                 <div className="flex items-center gap-2 pl-4 border-l border-[#E8E2D9]">
                                     <img 
                                         src={user?.avatar || `https://ui-avatars.com/api/?background=3D5A3E&color=fff&bold=true&name=${user?.name || 'User'}`}
@@ -230,13 +218,13 @@ const FreelancerLayout = () => {
                             </div>
                         </div>
                     </div>
-                    <div className="p-6 lg:p-8">
+                    <div className="p-6">
                         <Outlet />
                     </div>
                 </main>
             </div>
 
-            {/* Pour mobile, afficher le contenu en dessous du header */}
+            {/* Contenu mobile */}
             <div className="lg:hidden">
                 <div className="p-4">
                     <Outlet />
@@ -260,4 +248,4 @@ const FreelancerLayout = () => {
     );
 };
 
-export default FreelancerLayout;
+export default MessagesLayout;

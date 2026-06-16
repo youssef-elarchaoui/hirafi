@@ -4,6 +4,77 @@ const Order = require('../models/Order');
 const Service = require('../models/Service');
 const User = require('../models/User');
 
+
+
+
+// controllers/orderController.js - Ajoutez cette fonction
+
+// @desc    Compléter une commande (client)
+// @route   PUT /api/orders/:id/complete
+// @access  Private (Client only)
+const completeOrder = async (req, res) => {
+    try {
+        const order = await Order.findById(req.params.id);
+
+        if (!order) {
+            return res.status(404).json({
+                success: false,
+                message: 'Commande non trouvée'
+            });
+        }
+
+        // Vérifier si l'utilisateur est le client
+        if (order.clientId.toString() !== req.user._id.toString() && req.user.role !== 'admin') {
+            return res.status(403).json({
+                success: false,
+                message: 'Seul le client peut confirmer la réception'
+            });
+        }
+
+        // Vérifier le statut
+        if (order.status !== 'delivered') {
+            return res.status(400).json({
+                success: false,
+                message: 'La commande doit être livrée pour être complétée'
+            });
+        }
+
+        // Mettre à jour le statut
+        order.status = 'completed';
+        order.completedAt = new Date();
+
+        // Mettre à jour les statistiques du freelancer
+        const freelancer = await User.findById(order.freelancerId);
+        if (freelancer) {
+            freelancer.totalOrders += 1;
+            freelancer.totalEarnings += order.freelancerEarnings || order.price;
+            await freelancer.save();
+        }
+
+        // Mettre à jour les statistiques du service
+        const service = await Service.findById(order.serviceId);
+        if (service) {
+            service.orders += 1;
+            await service.save();
+        }
+
+        await order.save();
+
+        res.status(200).json({
+            success: true,
+            message: 'Commande complétée avec succès !',
+            order
+        });
+
+    } catch (error) {
+        console.error('Erreur completeOrder:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Erreur lors de la validation de la commande'
+        });
+    }
+};
+
 // @desc    Créer une nouvelle commande
 // @route   POST /api/orders
 // @access  Private (Client only)
@@ -414,6 +485,7 @@ const getAllOrders = async (req, res) => {
 
 module.exports = {
     createOrder,
+    completeOrder,
     getMyOrders,
     getReceivedOrders,
     getOrderById,

@@ -1,18 +1,19 @@
-// src/pages/freelancer/FreelancerMessages.jsx
+// src/pages/client/ClientMessages.jsx
 import React, { useState, useEffect, useRef } from 'react';
 import { useAuth } from '../../hooks/useAuth';
 import { chatApi } from '../../api/chatApi';
 import { orderApi } from '../../api/orderApi';
 import toast from 'react-hot-toast';
+import  { Link } from 'react-router-dom';
 import { 
   FiSend, FiSearch, FiUser, FiClock, FiMessageSquare,
   FiChevronLeft, FiChevronRight, FiPaperclip, FiSmile,
   FiCheck, FiMoreVertical, FiPhone,
-  FiVideo, FiInfo, FiX, FiRefreshCw
+  FiVideo, FiInfo, FiX, FiRefreshCw, FiArrowLeft
 } from 'react-icons/fi';
 import { useSocket } from '../../context/SocketContext';
 
-const FreelancerMessages = () => {
+const ClientMessages = () => {
     const { user } = useAuth();
     const { socket, isConnected, sendMessage, joinRoom, leaveRoom, sendTyping, onEvent } = useSocket();
     const [conversations, setConversations] = useState([]);
@@ -163,7 +164,7 @@ const FreelancerMessages = () => {
 
     const fetchOrders = async () => {
         try {
-            const response = await orderApi.getReceivedOrders();
+            const response = await orderApi.getMyOrders();
             setOrders(response.data.orders || []);
             console.log('Commandes chargées:', response.data.orders?.length || 0);
         } catch (error) {
@@ -328,8 +329,11 @@ const FreelancerMessages = () => {
                                 Aucune conversation
                             </h3>
                             <p className="text-[#6B5E4F] text-sm">
-                                {searchTerm ? 'Aucun résultat trouvé' : 'Commencez à discuter avec vos clients'}
+                                {searchTerm ? 'Aucun résultat trouvé' : 'Commencez à discuter avec les artisans'}
                             </p>
+                            <Link to="/services" className="mt-4 text-[#3D5A3E] hover:underline text-sm">
+                                Explorer les services
+                            </Link>
                         </div>
                     ) : (
                         filteredConversations.map((conv) => (
@@ -356,7 +360,7 @@ const FreelancerMessages = () => {
                                 <div className="flex-1 text-left min-w-0">
                                     <div className="flex justify-between items-start">
                                         <span className="font-medium text-[#1A1208] text-sm truncate">
-                                            {conv.user?.name || 'Utilisateur'}
+                                            {conv.user?.name || 'Artisan'}
                                         </span>
                                         {conv.lastMessage?.createdAt && (
                                             <span className="text-xs text-[#9B9082] flex-shrink-0 ml-2">
@@ -390,7 +394,7 @@ const FreelancerMessages = () => {
                                 onClick={() => setSelectedUser(null)}
                                 className="md:hidden p-1 rounded-lg hover:bg-[#E8EDE6] transition-colors"
                             >
-                                <FiChevronLeft size={20} />
+                                <FiArrowLeft size={20} />
                             </button>
                             <div className="relative">
                                 <img 
@@ -542,7 +546,7 @@ const FreelancerMessages = () => {
                         Vos messages
                     </h2>
                     <p className="text-[#6B5E4F] max-w-sm text-center">
-                        Sélectionnez une conversation pour commencer à discuter avec vos clients
+                        Sélectionnez une conversation pour commencer à discuter avec un artisan
                     </p>
                 </div>
             )}
@@ -550,4 +554,4 @@ const FreelancerMessages = () => {
     );
 };
 
-export default FreelancerMessages;
+export default ClientMessages;

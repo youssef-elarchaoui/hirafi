@@ -1,6 +1,6 @@
 import { useSocket as useSocketContext } from '../context/SocketContext';
 import { useEffect, useCallback, useRef } from 'react';
-import useAuth from './useAuth';
+import { useAuth } from './useAuth';
 
 /**
  * Hook personnalisé pour WebSocket

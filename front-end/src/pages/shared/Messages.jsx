@@ -1,5 +1,6 @@
-// src/pages/freelancer/FreelancerMessages.jsx
+// src/pages/shared/Messages.jsx
 import React, { useState, useEffect, useRef } from 'react';
+import { useLocation, useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
 import { chatApi } from '../../api/chatApi';
 import { orderApi } from '../../api/orderApi';
@@ -8,12 +9,15 @@ import {
   FiSend, FiSearch, FiUser, FiClock, FiMessageSquare,
   FiChevronLeft, FiChevronRight, FiPaperclip, FiSmile,
   FiCheck, FiMoreVertical, FiPhone,
-  FiVideo, FiInfo, FiX, FiRefreshCw
+  FiVideo, FiInfo, FiX, FiRefreshCw, FiArrowLeft,
+  FiHome
 } from 'react-icons/fi';
 import { useSocket } from '../../context/SocketContext';
 
-const FreelancerMessages = () => {
+const Messages = () => {
     const { user } = useAuth();
+    const location = useLocation();
+    const navigate = useNavigate();
     const { socket, isConnected, sendMessage, joinRoom, leaveRoom, sendTyping, onEvent } = useSocket();
     const [conversations, setConversations] = useState([]);
     const [selectedUser, setSelectedUser] = useState(null);
@@ -34,14 +38,46 @@ const FreelancerMessages = () => {
     const typingTimeoutRef = useRef(null);
     const messagesContainerRef = useRef(null);
 
-    // DEBUG: Afficher l'état du socket
+    // Récupérer l'ID de la commande depuis l'URL
     useEffect(() => {
-        console.log('=== SOCKET DEBUG ===');
-        console.log('Socket existe?', !!socket);
-        console.log('Socket connecté?', isConnected);
-        console.log('Utilisateur ID:', user?._id);
-        console.log('Socket ID:', socket?.id);
-    }, [socket, isConnected, user]);
+        const params = new URLSearchParams(location.search);
+        const orderId = params.get('order');
+        const userId = params.get('user');
+
+        if (userId) {
+        // Si on a un ID utilisateur, charger la conversation
+        setSelectedUser({ _id: userId });
+        fetchMessages(userId);
+        const roomId = [user?._id, userId].sort().join('_');
+        joinRoom(roomId);
+        }else if (orderId) {
+            setSelectedOrderId(orderId);
+            console.log('📦 Commande sélectionnée:', orderId);
+            // Charger les détails de la commande et l'artisan
+            fetchOrderAndFreelancer(orderId);
+        }
+    }, [location]);
+
+    const fetchOrderAndFreelancer = async (orderId) => {
+        try {
+            const response = await orderApi.getOrderById(orderId);
+            if (response.data.success) {
+                const order = response.data.order;
+                // Sélectionner automatiquement le freelancer
+                if (order.freelancerId) {
+                    setSelectedUser(order.freelancerId);
+                    // Joindre la room
+                    const roomId = [user?._id, order.freelancerId._id].sort().join('_');
+                    joinRoom(roomId);
+                    // Charger les messages
+                    fetchMessages(order.freelancerId._id);
+                }
+            }
+        } catch (error) {
+            console.error('Erreur chargement commande:', error);
+            toast.error('Impossible de charger la commande');
+        }
+    };
 
     // Écouter les événements Socket
     useEffect(() => {
@@ -163,7 +199,7 @@ const FreelancerMessages = () => {
 
     const fetchOrders = async () => {
         try {
-            const response = await orderApi.getReceivedOrders();
+            const response = await orderApi.getMyOrders();
             setOrders(response.data.orders || []);
             console.log('Commandes chargées:', response.data.orders?.length || 0);
         } catch (error) {
@@ -295,6 +331,10 @@ const FreelancerMessages = () => {
             <div className={`${selectedUser ? 'hidden md:flex' : 'flex'} flex-col w-full md:w-80 lg:w-96 border-r border-[#E8E2D9] ${!isConnected ? 'pt-10' : ''}`}>
                 <div className="p-4 border-b border-[#E8E2D9]">
                     <div className="flex items-center justify-between mb-3">
+                        <Link to="/" className="flex items-center gap-1 text-[#6B5E4F] hover:text-[#3D5A3E] text-sm transition-colors">
+                            <FiHome size={16} />
+                            Accueil
+                        </Link>
                         <h2 className="font-heading font-bold text-[#1A1208] flex items-center gap-2">
                             <FiMessageSquare size={18} className="text-[#3D5A3E]" />
                             Messages
@@ -328,8 +368,11 @@ const FreelancerMessages = () => {
                                 Aucune conversation
                             </h3>
                             <p className="text-[#6B5E4F] text-sm">
-                                {searchTerm ? 'Aucun résultat trouvé' : 'Commencez à discuter avec vos clients'}
+                                {searchTerm ? 'Aucun résultat trouvé' : 'Commencez à discuter avec les artisans'}
                             </p>
+                            <Link to="/services" className="mt-4 text-[#3D5A3E] hover:underline text-sm">
+                                Explorer les services
+                            </Link>
                         </div>
                     ) : (
                         filteredConversations.map((conv) => (
@@ -356,7 +399,7 @@ const FreelancerMessages = () => {
                                 <div className="flex-1 text-left min-w-0">
                                     <div className="flex justify-between items-start">
                                         <span className="font-medium text-[#1A1208] text-sm truncate">
-                                            {conv.user?.name || 'Utilisateur'}
+                                            {conv.user?.name || 'Artisan'}
                                         </span>
                                         {conv.lastMessage?.createdAt && (
                                             <span className="text-xs text-[#9B9082] flex-shrink-0 ml-2">
@@ -542,7 +585,7 @@ const FreelancerMessages = () => {
                         Vos messages
                     </h2>
                     <p className="text-[#6B5E4F] max-w-sm text-center">
-                        Sélectionnez une conversation pour commencer à discuter avec vos clients
+                        Sélectionnez une conversation pour commencer à discuter
                     </p>
                 </div>
             )}
@@ -550,4 +593,4 @@ const FreelancerMessages = () => {
     );
 };
 
-export default FreelancerMessages;
+export default Messages;
